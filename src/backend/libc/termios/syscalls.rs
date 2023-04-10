@@ -21,29 +21,40 @@ use core::mem::MaybeUninit;
 #[cfg(not(target_os = "wasi"))]
 pub(crate) fn tcgetattr(fd: BorrowedFd<'_>) -> io::Result<Termios> {
     let mut result = MaybeUninit::<Termios>::uninit();
-    unsafe {
-        ret(c::tcgetattr(borrowed_fd(fd), result.as_mut_ptr()))?;
-        Ok(result.assume_init())
-    }
-}
 
-#[cfg(all(
-    any(target_os = "android", target_os = "linux"),
-    any(
-        target_arch = "x86",
-        target_arch = "x86_64",
-        target_arch = "x32",
-        target_arch = "riscv64",
-        target_arch = "aarch64",
-        target_arch = "arm",
-        target_arch = "mips",
-        target_arch = "mips64",
-    )
-))]
-pub(crate) fn tcgetattr2(fd: BorrowedFd<'_>) -> io::Result<crate::termios::Termios2> {
-    let mut result = MaybeUninit::<crate::termios::Termios2>::uninit();
+    #[cfg(all(
+        any(target_os = "android", target_os = "linux"),
+        any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "x32",
+            target_arch = "riscv64",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips64",
+        )
+    ))]
     unsafe {
         ret(c::ioctl(borrowed_fd(fd), c::TCGETS2, result.as_mut_ptr()))?;
+        Ok(result.assume_init())
+    }
+
+    #[cfg(not(all(
+        any(target_os = "android", target_os = "linux"),
+        any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "x32",
+            target_arch = "riscv64",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips64",
+        )
+    )))]
+    unsafe {
+        ret(c::tcgetattr(borrowed_fd(fd), result.as_mut_ptr()))?;
         Ok(result.assume_init())
     }
 }
@@ -68,37 +79,44 @@ pub(crate) fn tcsetattr(
     optional_actions: OptionalActions,
     termios: &Termios,
 ) -> io::Result<()> {
-    unsafe {
-        ret(c::tcsetattr(
-            borrowed_fd(fd),
-            optional_actions as _,
-            termios,
-        ))
-    }
-}
-
-#[cfg(all(
-    any(target_os = "android", target_os = "linux"),
-    any(
-        target_arch = "x86",
-        target_arch = "x86_64",
-        target_arch = "x32",
-        target_arch = "riscv64",
-        target_arch = "aarch64",
-        target_arch = "arm",
-        target_arch = "mips",
-        target_arch = "mips64",
-    )
-))]
-pub(crate) fn tcsetattr2(
-    fd: BorrowedFd,
-    optional_actions: OptionalActions,
-    termios: &crate::termios::Termios2,
-) -> io::Result<()> {
+    #[cfg(all(
+        any(target_os = "android", target_os = "linux"),
+        any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "x32",
+            target_arch = "riscv64",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips64",
+        )
+    ))]
     unsafe {
         ret(c::ioctl(
             borrowed_fd(fd),
             (c::TCSETS2 as u32 + optional_actions as u32) as _,
+            termios,
+        ))
+    }
+
+    #[cfg(not(all(
+        any(target_os = "android", target_os = "linux"),
+        any(
+            target_arch = "x86",
+            target_arch = "x86_64",
+            target_arch = "x32",
+            target_arch = "riscv64",
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "mips",
+            target_arch = "mips64",
+        )
+    )))]
+    unsafe {
+        ret(c::tcsetattr(
+            borrowed_fd(fd),
+            optional_actions as _,
             termios,
         ))
     }
